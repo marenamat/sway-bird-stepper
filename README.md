@@ -1,23 +1,12 @@
-# swaybg
+# Sway BIRD Stepper
 
+These are animated bird traces as a wallpaper and/or lockscreen input
+(for swaylock-plugin). Initialized as a fork of swaywm/swaybg.
 swaybg is a wallpaper utility for Wayland compositors. It is compatible with
 any Wayland compositor which implements the wlr-layer-shell protocol and
 `wl_output` version 4.
 
-See the man page, `swaybg(1)`, for instructions on using swaybg.
-
-## Release Signatures
-
-Releases are signed with [E88F5E48](https://keys.openpgp.org/search?q=34FF9526CFEF0E97A340E2E40FDE7BE0E88F5E48)
-and published [on GitHub](https://github.com/swaywm/swaybg/releases). swaybg
-releases are managed independently of sway releases.
-
 ## Installation
-
-### From Packages
-
-swaybg is available in many distributions. Try installing the "swaybg"
-package for yours.
 
 ### Compiling from Source
 
