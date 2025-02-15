@@ -90,7 +90,7 @@ endforeach
 executable(
 	'swaybg',
 	[
-		'background-image.c',
+                'anim.c',
 		'cairo.c',
 		'log.c',
 		'main.c',
