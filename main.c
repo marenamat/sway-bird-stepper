@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <getopt.h>
+#include <poll.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -631,8 +632,23 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	state.run_display = true;
-	while (wl_display_dispatch(state.display) != -1 && state.run_display) {
+	while (true) {
+		while (wl_display_prepare_read(state.display) != 0)
+			wl_display_dispatch_pending(state.display);
+		wl_display_flush(state.display);
+
+		struct pollfd fds[] = {
+			{ .fd = wl_display_get_fd(state.display), .events = POLLIN },
+		};
+		int ret = poll(fds, (sizeof fds) / sizeof (*fds), 10);
+
+		if (ret < 0)
+			wl_display_cancel_read(state.display);
+		else
+			wl_display_read_events(state.display);
+
+		wl_display_dispatch_pending(state.display);
+
 		// Send acks, and determine which images need to be loaded
 		struct swaybg_output *output;
 		wl_list_for_each(output, &state.outputs, link) {
