@@ -75,6 +75,8 @@ struct swaybg_output {
 	struct wp_viewport *viewport;
 	struct wp_fractional_scale_v1 *fract_scale;
 
+	struct anim_context *actx;
+
 	uint32_t width, height;
 	int32_t scale;
 	uint32_t pref_fract_scale;
@@ -88,8 +90,8 @@ struct swaybg_output {
 };
 
 // Create a wl_buffer with the specified dimensions and content
-static struct wl_buffer *draw_buffer(const struct swaybg_output *output,
-		uint64_t randval, uint32_t buffer_width, uint32_t buffer_height) {
+static struct wl_buffer *draw_buffer(struct swaybg_output *output,
+		uint32_t buffer_width, uint32_t buffer_height) {
 	uint32_t bg_color = output->config->color ? output->config->color : 0x000000ff;
 
 	struct pool_buffer buffer;
@@ -102,7 +104,7 @@ static struct wl_buffer *draw_buffer(const struct swaybg_output *output,
 	cairo_set_source_u32(cairo, bg_color);
 	cairo_paint(cairo);
 
-	render_anim(cairo, randval, buffer_width, buffer_height);
+	output->actx = render_anim(cairo, output->actx, buffer_width, buffer_height);
 
 	// return wl_buffer for caller to use and destroy
 	struct wl_buffer *wl_buf = buffer.buffer;
@@ -128,13 +130,12 @@ static void get_buffer_size(const struct swaybg_output *output,
 	}
 }
 
-static void render_frame(struct swaybg_output *output, uint64_t randval) {
+static void render_frame(struct swaybg_output *output) {
 	uint32_t buffer_width, buffer_height;
 	get_buffer_size(output, &buffer_width, &buffer_height);
 
 	// Attach a new buffer if the desired size has changed
-	struct wl_buffer *buf = draw_buffer(output, randval,
-			buffer_width, buffer_height);
+	struct wl_buffer *buf = draw_buffer(output, buffer_width, buffer_height);
 	if (!buf) {
 		return;
 	}
@@ -182,6 +183,9 @@ static void destroy_swaybg_output(struct swaybg_output *output) {
 	}
 	if (output->fract_scale != NULL) {
 		wp_fractional_scale_v1_destroy(output->fract_scale);
+	}
+	if (output->actx != NULL) {
+		anim_done(output->actx);
 	}
 	wl_output_destroy(output->wl_output);
 	free(output->name);
@@ -546,10 +550,10 @@ int main(int argc, char **argv) {
 	}
 
 	// Track time
-#define FPS 5
+#define FPM 120
 	struct timespec last;
 	clock_gettime(CLOCK_MONOTONIC, &last);
-	int tout = 1000 / FPS;
+	int tout = 60000 / FPM;
 
 	while (true) {
 		while (wl_display_prepare_read(state.display) != 0)
@@ -573,7 +577,7 @@ int main(int argc, char **argv) {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 
 		uint64_t dif_ms = (now.tv_sec - last.tv_sec) * 1000 + now.tv_nsec / 1000000 - last.tv_nsec / 1000000;
-		tout = (dif_ms * FPS > 1000) ? 0 : (1000 / FPS - dif_ms);
+		tout = (dif_ms * FPM > 60000) ? 0 : (60000 / FPM - dif_ms);
 
 		if (tout > 0)
 			continue;
@@ -593,7 +597,7 @@ int main(int argc, char **argv) {
 
 		// Render animations
 		wl_list_for_each(output, &state.outputs, link) {
-			render_frame(output, last.tv_nsec);
+			render_frame(output);
 		}
 	}
 
