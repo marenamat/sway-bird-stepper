@@ -550,7 +550,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Track time
-#define FPM 120
+#define FPM 180
 	struct timespec last;
 	clock_gettime(CLOCK_MONOTONIC, &last);
 	int tout = 60000 / FPM;

@@ -52,6 +52,7 @@ struct anim_context {
 		int max_accel;
 		int line_width;
 		int trace_len;
+		int decay_limit;
 	} cf;
 	struct trace {
 		int x, y;		// Trace root position
@@ -104,6 +105,7 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 		.min_accel = -20,
 		.line_width = 2,
 		.trace_len = 40,
+		.decay_limit = 4,
 	}, *acfg = &acfgl;
 
 	if (!actx)
@@ -121,8 +123,13 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 		};
 
 		/* Generate initial velocity */
-		int dx, dy;
+		int dx, dy, check = 0;
 		do {
+			if (check++ > 128)
+			{
+				free(actx);
+				return render_anim(cr, NULL, width, height);
+			}
 			dx = randrange(-acfg->max_velocity, acfg->max_velocity + 1);
 			dy = randrange(-acfg->max_velocity, acfg->max_velocity + 1);
 		} while (!check_velocity(actx, dx, dy, width, height));
@@ -164,15 +171,20 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 	actx->cur_y = actx->nxt_y;
 
 	/* Update velocity */
-	int dx, dy;
+	int dx, dy, check = 0;
 	do {
+		if (check++ > 128)
+		{
+			free(actx);
+			return render_anim(cr, NULL, width, height);
+		}
 		dx = cx + randrange(
-		    acfg->min_accel / (3*(actx->cur_x < width / 4) + 1),
-		    (acfg->max_accel+1) / (3*(actx->cur_x > 3*width / 4) + 1)
-		    );
+			acfg->min_accel / (3*(actx->cur_x < width / 4) + 1),
+			(acfg->max_accel+1) / (3*(actx->cur_x > 3*width / 4) + 1)
+			);
 		dy = cy + randrange(
-		    acfg->min_accel / (3*(actx->cur_y < height / 4) + 1),
-		    (acfg->max_accel+1) / (3*(actx->cur_y > 3*height / 4) + 1));
+			acfg->min_accel / (3*(actx->cur_y < height / 4) + 1),
+			(acfg->max_accel+1) / (3*(actx->cur_y > 3*height / 4) + 1));
 	} while (!check_velocity(actx, dx, dy, width, height));
 
 	/* Write the next position */
@@ -187,6 +199,11 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 	if (mp < 0) mp = 0;
 	for (int ii = mp; ii < actx->nxt_pos; ii++)
 	{
+		double alpha = 1;
+		if (ii - mp < actx->cf.decay_limit)
+			alpha = 1.0 / (1 << (actx->cf.decay_limit - (ii - mp)));
+
+		cairo_set_source_rgba(cr, 0, 0, 0, alpha);
 		int i = ii % actx->cf.total_traces;
 
 		/*
