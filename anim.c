@@ -191,8 +191,14 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 	actx->nxt_x = actx->cur_x + dx;
 	actx->nxt_y = actx->cur_y + dy;
 
+	/* Draw the background */
+	cairo_set_source_rgb(cr, 0.2000, 0.1500, 0);
+	cairo_rectangle(cr, 0, 0, width, height);
+	cairo_fill(cr);
+
 	/* Draw the traces */
-	cairo_set_source_rgb(cr, 0, 0, 0);
+//	cairo_set_source_rgb(cr, 0, 0, 0);
+	cairo_set_source_rgb(cr, 0.8477, 0.7031, 0.1289);
 	cairo_set_line_width(cr, acfg->line_width);
 
 	int mp = actx->nxt_pos - actx->cf.total_traces;
@@ -203,7 +209,8 @@ struct anim_context *render_anim(cairo_t *cr, struct anim_context *actx, int wid
 		if (ii - mp < actx->cf.decay_limit)
 			alpha = 1.0 / (1 << (actx->cf.decay_limit - (ii - mp)));
 
-		cairo_set_source_rgba(cr, 0, 0, 0, alpha);
+		cairo_set_source_rgba(cr, 0.8477, 0.7031, 0.1289, alpha);
+//		cairo_set_source_rgba(cr, 0, 0, 0, alpha);
 		int i = ii % actx->cf.total_traces;
 
 		/*
