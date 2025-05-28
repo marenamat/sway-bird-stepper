@@ -556,8 +556,17 @@ int main(int argc, char **argv) {
 	int tout = 60000 / FPM;
 
 	while (true) {
+		bool still_ok = true;
 		while (wl_display_prepare_read(state.display) != 0)
-			wl_display_dispatch_pending(state.display);
+			if (wl_display_dispatch_pending(state.display) < 0)
+			{
+				still_ok = false;
+				break;
+			}
+
+		if (!still_ok)
+			break;
+
 		wl_display_flush(state.display);
 
 		struct pollfd fds[] = {
@@ -570,7 +579,8 @@ int main(int argc, char **argv) {
 		else
 			wl_display_read_events(state.display);
 
-		wl_display_dispatch_pending(state.display);
+		if (wl_display_dispatch_pending(state.display) < 0)
+			break;
 
 		// Re-poll if too early
 		struct timespec now;
